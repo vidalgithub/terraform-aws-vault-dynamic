@@ -43,17 +43,17 @@ pipeline {
                 expression { return params.ACTION == 'APPLY' }
             }
             steps {
-                withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
-                    script {
-                        dir("dynamic-tf") {
-                            sh 'export VAULT_ADDR="${VAULT_ADDR}"'
-                            sh 'export VAULT_TOKEN="${VAULT_TOKEN}"'
-                            sh 'terraform init'
-                            sh 'terraform plan -out=tfplan'
-                            sh 'terraform show -no-color tfplan > tfplan.txt'
-                        }
+              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
+                script {
+                    dir("dynamic-tf") {
+                        sh ' export VAULT_ADDR="${VAULT_ADDR}"'
+                        sh ' export VAULT_TOKEN="${VAULT_TOKEN}"'
+                        sh 'terraform init'
+                        sh 'terraform plan -out=tfplan'
+                        sh 'terraform show -no-color tfplan > tfplan.txt'
                     }
                 }
+              }
             }
         }
 
@@ -62,17 +62,17 @@ pipeline {
                 expression { return params.ACTION == 'DESTROY' }
             }
             steps {
-                withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
-                    script {
-                        dir("dynamic-tf") {
-                            sh 'export VAULT_ADDR="${VAULT_ADDR}"'
-                            sh 'export VAULT_TOKEN="${VAULT_TOKEN}"'                        
-                            sh 'terraform init'
-                            sh 'terraform plan -destroy -out=tfplan-destroy'
-                            sh 'terraform show -no-color tfplan-destroy > tfplan-destroy.txt'
-                        }
+              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
+                script {
+                    dir("dynamic-tf") {
+                        sh ' export VAULT_ADDR="${VAULT_ADDR}"'
+                        sh ' export VAULT_TOKEN="${VAULT_TOKEN}"'                        
+                        sh 'terraform init'
+                        sh 'terraform plan -destroy -out=tfplan-destroy'
+                        sh 'terraform show -no-color tfplan-destroy > tfplan-destroy.txt'
                     }
                 }
+              }
             }
         }
 
@@ -97,15 +97,30 @@ pipeline {
                 expression { return params.ACTION == 'APPLY' }
             }
             steps {
-                withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
-                    script {
-                        dir("dynamic-tf") {
-                            sh 'export VAULT_ADDR="${VAULT_ADDR}"'
-                            sh 'export VAULT_TOKEN="${VAULT_TOKEN}"'                        
+              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
+                script {
+                    dir("dynamic-tf") {
+                        sh ' export VAULT_ADDR="${VAULT_ADDR}"'
+                        sh ' export VAULT_TOKEN="${VAULT_TOKEN}"'
+                        try {
                             sh 'terraform apply -input=false tfplan'
+                        } catch (Exception e) {
+                            echo 'Ignoring errors during apply. Check the plan for issues.'
+                            echo e.getMessage()
+                            // Check for specific error messages and decide whether to skip apply
+                            if (e.getMessage().contains('User with name aws-admin-vaut already exists') ||
+                                e.getMessage().contains('BucketAlreadyExists') ||
+                                e.getMessage().contains('Table already exists') ||
+                                e.getMessage().contains('resource record set already exists')) {
+                                echo 'Resource already exists. Skipping apply.'
+                                currentBuild.result = 'SUCCESS'
+                            } else {
+                                throw e
+                            }
                         }
                     }
                 }
+              }
             }
         }
 
@@ -114,15 +129,30 @@ pipeline {
                 expression { return params.ACTION == 'DESTROY' }
             }
             steps {
-                withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
-                    script {
-                        dir("dynamic-tf") {
-                            sh 'export VAULT_ADDR="${VAULT_ADDR}"'
-                            sh 'export VAULT_TOKEN="${VAULT_TOKEN}"'                        
+              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
+                script {
+                    dir("dynamic-tf") {
+                        sh ' export VAULT_ADDR="${VAULT_ADDR}"'
+                        sh ' export VAULT_TOKEN="${VAULT_TOKEN}"'                        
+                        try {
                             sh 'terraform apply -destroy -input=false tfplan-destroy'
+                        } catch (Exception e) {
+                            echo 'Ignoring errors during destroy. Check the plan for issues.'
+                            echo e.getMessage()
+                            // Check for specific error messages and decide whether to skip destroy
+                            if (e.getMessage().contains('User with name aws-admin-vaut already exists') ||
+                                e.getMessage().contains('BucketAlreadyExists') ||
+                                e.getMessage().contains('Table already exists') ||
+                                e.getMessage().contains('resource record set already exists')) {
+                                echo 'Resource already exists. Skipping destroy.'
+                                currentBuild.result = 'SUCCESS'
+                            } else {
+                                throw e
+                            }
                         }
                     }
                 }
+              }
             }
         }
     }
