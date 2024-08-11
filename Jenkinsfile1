@@ -1,0 +1,197 @@
+pipeline {
+    agent {
+        docker { 
+            image 'vidaldocker/mastertf:kn1.0.2' 
+        }
+    }
+    environment {
+        RESOURCE_DIR =  "${env.WORKSPACE}" //"${env.WORKSPACE}/resources"
+        dir = "dynamic-aws-vault"
+    }
+
+    parameters {
+        choice(name: 'ACTION', choices: ['APPLY', 'DESTROY'], description: 'Action to perform (APPLY/DESTROY)')
+        booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically approve changes')
+    }
+    stages {
+        stage('Clean Workspace') {
+            steps {
+                script {
+                    echo 'Cleaning workspace...'
+                    sh 'find . -maxdepth 1 ! -name . -exec rm -rf {} +'
+                }
+            }
+        }
+
+        // stage('Checkout') {
+        //     steps {
+        //         script {
+        //             checkout scm
+        //         }
+        //     }
+        // }
+
+        stage('Checkout') {
+            steps {
+                script {
+                    // Clone the repository manually with a single branch option
+                    sh 'git clone --branch main https://github.com/vidalgithub/terraform-aws-vault-dynamic.git ${dir}'
+                }
+            }
+        }
+        stage('Process Infrastructures') {
+            parallel {
+                stage('APPLY') {
+                    when {
+                        expression { return params.ACTION == 'APPLY' }
+                    }
+                    steps {
+                        script {
+                            withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
+                                    echo "Provisioning INFRA in ${env.RESOURCE_DIR}/${dir}"
+                                    sh '''
+                                       export HELM_HOME="${HELM_HOME}"
+                                       export HELM_CACHE_HOME="${HELM_CACHE_HOME}"
+                                       export HELM_CONFIG_HOME="${HELM_CONFIG_HOME}"
+                                       export XDG_CACHE_HOME="${XDG_CACHE_HOME}"
+                                       terraform version
+                                       helm version
+                                       vault version
+                                    '''
+                                    dir("${env.RESOURCE_DIR}/${dir}") {
+                                        sh "pwd"
+                                        sh "ls -la"
+                                        provisionInfrastructure()
+                                    }
+                            }
+                        }
+                    }
+                }
+                stage('DESTROY') {
+                    when {
+                        expression { return params.ACTION == 'DESTROY' }
+                    }
+                    steps {
+                        script {
+                            withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
+                                    echo "Destroying ${infra.name} in ${infra.dir}"
+                                    sh 'terraform version'
+                                    sh 'helm version'
+                                    SH 'vault version'
+                                    dir("${env.RESOURCE_DIR}/${dir}") {
+                                        sh "pwd"
+                                        sh "ls -la"
+                                        destroyInfrastructure()
+                                    }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            slackSend(channel: '#jenkins-pipelines', color: '#FFFF00', message: "Build started for ${env.JOB_NAME} (${env.BUILD_NUMBER})")
+        }
+        aborted {
+            slackSend(channel: '#jenkins-pipelines', color: '#FF0000', message: "Build aborted for ${env.JOB_NAME} (${env.BUILD_NUMBER})")
+        }
+        failure {
+            slackSend(channel: '#jenkins-pipelines', color: '#FF0000', message: "Build failed for ${env.JOB_NAME} (${env.BUILD_NUMBER})")
+        }
+        notBuilt {
+            slackSend(channel: '#jenkins-pipelines', color: '#AAAAAA', message: "Build not built for ${env.JOB_NAME} (${env.BUILD_NUMBER})")
+        }
+        success {
+            slackSend(channel: '#jenkins-pipelines', color: '#00FF00', message: "Build succeeded for ${env.JOB_NAME} (${env.BUILD_NUMBER})")
+        }
+        unstable {
+            slackSend(channel: '#jenkins-pipelines', color: '#FFFF00', message: "Build unstable for ${env.JOB_NAME} (${env.BUILD_NUMBER})")
+        }
+        regression {
+            slackSend(channel: '#jenkins-pipelines', color: '#FF0000', message: "Build regressed for ${env.JOB_NAME} (${env.BUILD_NUMBER})")
+        }
+        fixed {
+            slackSend(channel: '#jenkins-pipelines', color: '#00FF00', message: "Build back to normal for ${env.JOB_NAME} (${env.BUILD_NUMBER})")
+        }
+    }
+}
+
+def provisionInfrastructure() {
+    try {
+        echo "Starting provision of INFRA in directory ${env.RESOURCE_DIR}/${dir}"   //"Starting provision of ${name} in directory ${env.RESOURCE_DIR}/${dir}"
+        // Initialize Terraform
+        sh 'export VAULT_ADDR="${VAULT_ADDR}"'
+        sh 'export VAULT_TOKEN="${VAULT_TOKEN}"'
+        sh 'terraform init'
+        
+        // Plan Terraform
+        sh 'terraform plan -out=tfplan'
+        sh 'terraform show -no-color tfplan > tfplan.txt'
+        
+        // Display the contents of the plan files
+        echo 'Contents of tfplan file:'
+        sh 'terraform show tfplan'
+        echo 'Contents of tfplan.txt file:'
+        sh 'cat tfplan.txt'
+        
+        // Read the plan file for approval
+        def planFile = "${env.RESOURCE_DIR}/${dir}/tfplan.txt"
+        if (fileExists(planFile)) {
+            def plan = readFile planFile
+            
+            // Approval stage
+            if (!params.autoApprove) {
+                input message: "Do you want to apply the Terraform plan for his INFRA?",
+                      parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
+            }
+            
+            // Apply the plan
+            sh 'terraform apply -input=false tfplan'
+        } else {
+            error "Plan file ${planFile} does not exist"
+        }
+    } catch (Exception e) {
+        error "Error in provisioning this INFRA: ${e.getMessage()}"
+    }
+}
+
+def destroyInfrastructure() {     
+    try {
+        echo "Starting destruction of INFRA in directory ${env.RESOURCE_DIR}/${dir}"    //"Starting destruction of ${name} in directory ${env.RESOURCE_DIR}/${dir}"
+        // Initialize Terraform
+        sh 'export VAULT_ADDR="${VAULT_ADDR}"'
+        sh 'export VAULT_TOKEN="${VAULT_TOKEN}"'
+        sh 'terraform init'
+        
+        // Plan Destroy Terraform
+        sh 'terraform plan -destroy -out=tfplan-destroy'
+        sh 'terraform show -no-color tfplan-destroy > tfplan-destroy.txt'
+        
+        // Display the contents of the destroy plan files
+        echo 'Contents of tfplan-destroy file:'
+        sh 'terraform show tfplan-destroy'
+        echo 'Contents of tfplan-destroy.txt file:'
+        sh 'cat tfplan-destroy.txt'
+        
+        // Read the plan file for approval
+        def planFile = "${env.RESOURCE_DIR}/${dir}/tfplan-destroy.txt"
+        if (fileExists(planFile)) {
+            def plan = readFile planFile
+            
+            // Approval stage
+            if (!params.autoApprove) {
+                input message: "Do you want to destroy the Terraform resources for this INFRA?",
+                      parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
+            }
+            
+            // Destroy the plan
+            sh 'terraform apply -input=false tfplan-destroy'
+        } else {
+            error "Plan file ${planFile} does not exist"
+        }
+    } catch (Exception e) {
+        error "Error in destroying this INFRA: ${e.getMessage()}"
+    }
+}
