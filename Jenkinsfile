@@ -17,6 +17,14 @@ pipeline {
     }
 
     stages {
+        stage('Clean Workspace') {
+            steps {
+                script {
+                    echo 'Cleaning workspace...'
+                    sh 'find . -maxdepth 1 ! -name . -exec rm -rf {} +'
+                }
+            }
+        }
         stage('Terraform and Checkout') {
             parallel {
                 stage('Verify Docker Setup') {
@@ -28,7 +36,7 @@ pipeline {
                 stage('Checkout') {
                     steps {
                         script {
-                            dir("terraform") {
+                            dir("dynamic-tf") {
                                 git "https://github.com/vidalgithub/terraform-aws-vault-dynamic.git"
                             }
                         }
@@ -43,7 +51,7 @@ pipeline {
             }
             steps {
                 script {
-                    dir("terraform") {
+                    dir("dynamic-tf") {
                         sh 'terraform init'
                         sh 'terraform plan -out=tfplan'
                         sh 'terraform show -no-color tfplan > tfplan.txt'
@@ -58,7 +66,7 @@ pipeline {
             }
             steps {
                 script {
-                    dir("terraform") {
+                    dir("dynamic-tf") {
                         sh 'terraform init'
                         sh 'terraform plan -destroy -out=tfplan-destroy'
                         sh 'terraform show -no-color tfplan-destroy > tfplan-destroy.txt'
@@ -89,7 +97,7 @@ pipeline {
             }
             steps {
                 script {
-                    dir("terraform") {
+                    dir("dynamic-tf") {
                         sh 'terraform apply -input=false tfplan'
                     }
                 }
@@ -102,7 +110,7 @@ pipeline {
             }
             steps {
                 script {
-                    dir("terraform") {
+                    dir("dynamic-tf") {
                         sh 'terraform apply -destroy -input=false tfplan-destroy'
                     }
                 }
