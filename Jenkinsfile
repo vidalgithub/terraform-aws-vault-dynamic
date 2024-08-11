@@ -3,12 +3,6 @@ pipeline {
         choice(name: 'ACTION', choices: ['APPLY', 'DESTROY'], description: 'Choose action to perform')
         booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run the selected action after generating plan?')
     }
-    /*environment {
-        //VAULT_ADDR = credentials('vaultUrl')
-        //VAULT_TOKEN = credentials('vaultCred')
-        //AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
-        //AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
-    }*/
 
     agent {
         docker { 
@@ -36,9 +30,8 @@ pipeline {
                 stage('Checkout') {
                     steps {
                         script {
-                            dir("dynamic-tf") {
-                                git "https://github.com/vidalgithub/terraform-aws-vault-dynamic.git"
-                            }
+                            // Clone the repository manually with a single branch option
+                            sh 'git clone --branch main https://github.com/vidalgithub/terraform-aws-vault-dynamic.git dynamic-tf'
                         }
                     }
                 }
