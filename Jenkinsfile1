@@ -77,7 +77,7 @@ pipeline {
                                     echo "Destroying ${infra.name} in ${infra.dir}"
                                     sh 'terraform version'
                                     sh 'helm version'
-                                    SH 'vault version'
+                                    sh 'vault version'
                                     dir("${env.RESOURCE_DIR}/${dir}") {
                                         sh "pwd"
                                         sh "ls -la"
