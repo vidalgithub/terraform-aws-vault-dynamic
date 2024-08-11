@@ -115,7 +115,22 @@ data "aws_route53_zone" "acm_cert" {
   name = "kloudevsecops.com"
 }
 
-# Create Route 53 DNS records for validation, excluding kloudevsecops.com
+# Fetch existing Route 53 DNS records
+data "aws_route53_record" "existing_record" {
+  for_each = {
+    for dvo in aws_acm_certificate.acm_cert.domain_validation_options :
+    dvo.domain_name => {
+      name   = dvo.resource_record_name
+      type   = dvo.resource_record_type
+    }
+  }
+
+  zone_id = data.aws_route53_zone.acm_cert.zone_id
+  name    = each.value.name
+  type    = each.value.type
+}
+
+# Create Route 53 DNS records for validation, excluding kloudevsecops.com and existing records
 resource "aws_route53_record" "acm_cert" {
   depends_on = [aws_acm_certificate.acm_cert]
   for_each = {
@@ -124,7 +139,7 @@ resource "aws_route53_record" "acm_cert" {
       name   = dvo.resource_record_name
       type   = dvo.resource_record_type
       record = dvo.resource_record_value
-    } if dvo.domain_name != "kloudevsecops.com" # Put if condition for name  don't want  record set OR Remove the if condition if you want to create a record set for ALL SANs
+    } if dvo.domain_name != "kloudevsecops.com" && length(data.aws_route53_record.existing_record[dvo.domain_name].records) == 0
   }
 
   zone_id = data.aws_route53_zone.acm_cert.zone_id
@@ -133,6 +148,33 @@ resource "aws_route53_record" "acm_cert" {
   ttl     = 60
   records = [each.value.record]
 }
+
+
+
+
+# # Fetch the Route 53 Hosted Zone ID
+# data "aws_route53_zone" "acm_cert" {
+#   name = "kloudevsecops.com"
+# }
+
+# # Create Route 53 DNS records for validation, excluding kloudevsecops.com
+# resource "aws_route53_record" "acm_cert" {
+#   depends_on = [aws_acm_certificate.acm_cert]
+#   for_each = {
+#     for dvo in aws_acm_certificate.acm_cert.domain_validation_options :
+#     dvo.domain_name => {
+#       name   = dvo.resource_record_name
+#       type   = dvo.resource_record_type
+#       record = dvo.resource_record_value
+#     } if dvo.domain_name != "kloudevsecops.com" # Put if condition for name  don't want  record set OR Remove the if condition if you want to create a record set for ALL SANs
+#   }
+
+#   zone_id = data.aws_route53_zone.acm_cert.zone_id
+#   name    = each.value.name
+#   type    = each.value.type
+#   ttl     = 60
+#   records = [each.value.record]
+# }
 
 # Validate the ACM certificate
 resource "aws_acm_certificate_validation" "acm_cert" {
@@ -159,17 +201,4 @@ output "acm_certificate_status" {
 output "zone_id" {
   value = data.aws_route53_zone.acm_cert.zone_id
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
