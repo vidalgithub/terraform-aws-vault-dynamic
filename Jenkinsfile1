@@ -6,7 +6,7 @@ pipeline {
     }
     environment {
         RESOURCE_DIR =  "${env.WORKSPACE}" //"${env.WORKSPACE}/resources"
-        dir = "dynamic-aws-vault"
+        //dir = "dynamic-aws-vault"
     }
 
     parameters {
@@ -14,19 +14,11 @@ pipeline {
         booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically approve changes')
     }
     stages {
-        stage('Clean Workspace') {
-            steps {
-                script {
-                    echo 'Cleaning workspace...'
-                    sh 'find . -maxdepth 1 ! -name . -exec rm -rf {} +'
-                }
-            }
-        }
-
-        // stage('Checkout') {
+        // stage('Clean Workspace') {
         //     steps {
         //         script {
-        //             checkout scm
+        //             echo 'Cleaning workspace...'
+        //             sh 'find . -maxdepth 1 ! -name . -exec rm -rf {} +'
         //         }
         //     }
         // }
@@ -34,12 +26,19 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    // Clone the repository manually with a single branch option
-                    sh 'rm -rf terraform-aws-vault-dynamic || true'
-                    sh 'git clone --branch main https://github.com/vidalgithub/terraform-aws-vault-dynamic.git ${dir}'
+                    checkout scm
                 }
             }
         }
+
+        // stage('Checkout') {
+        //     steps {
+        //         script {
+        //             // Clone the repository manually with a single branch option
+        //             sh 'git clone --branch main https://github.com/vidalgithub/terraform-aws-vault-dynamic.git ${dir}'
+        //         }
+        //     }
+        // }
         stage('Process Infrastructures') {
             parallel {
                 stage('APPLY') {
@@ -49,7 +48,7 @@ pipeline {
                     steps {
                         script {
                             withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
-                                    echo "Provisioning INFRA in ${env.RESOURCE_DIR}/${dir}"
+                                    echo "Provisioning INFRA in ${env.RESOURCE_DIR}"
                                     sh '''
                                        export HELM_HOME="${HELM_HOME}"
                                        export HELM_CACHE_HOME="${HELM_CACHE_HOME}"
@@ -59,7 +58,7 @@ pipeline {
                                        helm version
                                        vault version
                                     '''
-                                    dir("${env.RESOURCE_DIR}/${dir}") {
+                                    dir("${env.RESOURCE_DIR}") {
                                         sh "pwd"
                                         sh "ls -la"
                                         provisionInfrastructure()
@@ -75,11 +74,11 @@ pipeline {
                     steps {
                         script {
                             withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
-                                    echo "Destroying INFRA in ${env.RESOURCE_DIR}/${dir}"
+                                    echo "Destroying INFRA in ${env.RESOURCE_DIR}"
                                     sh 'terraform version'
                                     sh 'helm version'
                                     sh 'vault version'
-                                    dir("${env.RESOURCE_DIR}/${dir}") {
+                                    dir("${env.RESOURCE_DIR}") {
                                         sh "pwd"
                                         sh "ls -la"
                                         sh "terraform state list"
@@ -122,7 +121,7 @@ pipeline {
 
 def provisionInfrastructure() {
     try {
-        echo "Starting provision of INFRA in directory ${env.RESOURCE_DIR}/${dir}"   //"Starting provision of ${name} in directory ${env.RESOURCE_DIR}/${dir}"
+        echo "Starting provision of INFRA in directory ${env.RESOURCE_DIR}"   //"Starting provision of ${name} in directory ${env.RESOURCE_DIR}"
         // Initialize Terraform
         sh 'export VAULT_ADDR="${VAULT_ADDR}"'
         sh 'export VAULT_TOKEN="${VAULT_TOKEN}"'
@@ -139,7 +138,7 @@ def provisionInfrastructure() {
         sh 'cat tfplan.txt'
         
         // Read the plan file for approval
-        def planFile = "${env.RESOURCE_DIR}/${dir}/tfplan.txt"
+        def planFile = "${env.RESOURCE_DIR}/tfplan.txt"
         if (fileExists(planFile)) {
             def plan = readFile planFile
             
@@ -161,7 +160,7 @@ def provisionInfrastructure() {
 
 def destroyInfrastructure() {     
     try {
-        echo "Starting destruction of INFRA in directory ${env.RESOURCE_DIR}/${dir}"    //"Starting destruction of ${name} in directory ${env.RESOURCE_DIR}/${dir}"
+        echo "Starting destruction of INFRA in directory ${env.RESOURCE_DIR}"    //"Starting destruction of ${name} in directory ${env.RESOURCE_DIR}"
         // Initialize Terraform
         sh 'export VAULT_ADDR="${VAULT_ADDR}"'
         sh 'export VAULT_TOKEN="${VAULT_TOKEN}"'
@@ -178,7 +177,7 @@ def destroyInfrastructure() {
         sh 'cat tfplan-destroy.txt'
         
         // Read the plan file for approval
-        def planFile = "${env.RESOURCE_DIR}/${dir}/tfplan-destroy.txt"
+        def planFile = "${env.RESOURCE_DIR}/tfplan-destroy.txt"
         if (fileExists(planFile)) {
             def plan = readFile planFile
             
