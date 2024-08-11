@@ -105,17 +105,18 @@ pipeline {
                         try {
                             sh 'terraform apply -input=false tfplan'
                         } catch (Exception e) {
+                            def errorMessage = e.getMessage()
                             echo 'Ignoring errors during apply. Check the plan for issues.'
-                            echo e.getMessage()
+                            echo errorMessage
                             // Check for specific error messages and decide whether to skip apply
-                            if (e.getMessage().contains('User with name aws-admin-vaut already exists') ||
-                                e.getMessage().contains('BucketAlreadyExists') ||
-                                e.getMessage().contains('Table already exists') ||
-                                e.getMessage().contains('resource record set already exists')) {
+                            if (errorMessage.contains('User with name aws-admin-vaut already exists') ||
+                                errorMessage.contains('BucketAlreadyExists') ||
+                                errorMessage.contains('Table already exists') ||
+                                errorMessage.contains('resource record set already exists')) {
                                 echo 'Resource already exists. Skipping apply.'
                                 currentBuild.result = 'SUCCESS'
                             } else {
-                                throw e
+                                error 'Unknown error occurred during apply: ' + errorMessage
                             }
                         }
                     }
@@ -137,17 +138,18 @@ pipeline {
                         try {
                             sh 'terraform apply -destroy -input=false tfplan-destroy'
                         } catch (Exception e) {
+                            def errorMessage = e.getMessage()
                             echo 'Ignoring errors during destroy. Check the plan for issues.'
-                            echo e.getMessage()
+                            echo errorMessage
                             // Check for specific error messages and decide whether to skip destroy
-                            if (e.getMessage().contains('User with name aws-admin-vaut already exists') ||
-                                e.getMessage().contains('BucketAlreadyExists') ||
-                                e.getMessage().contains('Table already exists') ||
-                                e.getMessage().contains('resource record set already exists')) {
+                            if (errorMessage.contains('User with name aws-admin-vaut already exists') ||
+                                errorMessage.contains('BucketAlreadyExists') ||
+                                errorMessage.contains('Table already exists') ||
+                                errorMessage.contains('resource record set already exists')) {
                                 echo 'Resource already exists. Skipping destroy.'
                                 currentBuild.result = 'SUCCESS'
                             } else {
-                                throw e
+                                error 'Unknown error occurred during destroy: ' + errorMessage
                             }
                         }
                     }
