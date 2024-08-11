@@ -43,7 +43,7 @@ pipeline {
                 expression { return params.ACTION == 'APPLY' }
             }
             steps {
-              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultUrl: 'env.vaultUrl'], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[vaultKey: 'VAULT_ADDR'], [vaultKey: 'VAULT_TOKEN']]]]) {
+              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
                 script {
                     dir("dynamic-tf") {
                         sh ' export VAULT_ADDR="${VAULT_ADDR}"'
@@ -62,7 +62,7 @@ pipeline {
                 expression { return params.ACTION == 'DESTROY' }
             }
             steps {
-              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultUrl: 'env.vaultUrl'], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[vaultKey: 'VAULT_ADDR'], [vaultKey: 'VAULT_TOKEN']]]]) {
+              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
                 script {
                     dir("dynamic-tf") {
                         sh ' export VAULT_ADDR="${VAULT_ADDR}"'
@@ -97,7 +97,7 @@ pipeline {
                 expression { return params.ACTION == 'APPLY' }
             }
             steps {
-              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultUrl: 'env.vaultUrl'], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[vaultKey: 'VAULT_ADDR'], [vaultKey: 'VAULT_TOKEN']]]]) {
+              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
                 script {
                     dir("dynamic-tf") {
                         sh ' export VAULT_ADDR="${VAULT_ADDR}"'
@@ -114,7 +114,7 @@ pipeline {
                 expression { return params.ACTION == 'DESTROY' }
             }
             steps {
-              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultUrl: 'env.vaultUrl'], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[vaultKey: 'VAULT_ADDR'], [vaultKey: 'VAULT_TOKEN']]]]) {
+              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
                 script {
                     dir("dynamic-tf") {
                         sh ' export VAULT_ADDR="${VAULT_ADDR}"'
