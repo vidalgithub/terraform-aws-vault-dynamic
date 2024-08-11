@@ -4,8 +4,8 @@ pipeline {
         booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run the selected action after generating plan?')
     }
     environment {
-        VAULT_ADDR = credentials('vaultUrl')
-        VAULT_TOKEN = credentials('vaultCred')
+        //VAULT_ADDR = credentials('vaultUrl')
+        //VAULT_TOKEN = credentials('vaultCred')
         //AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
         //AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
     }
