@@ -4,10 +4,10 @@ pipeline {
         booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run the selected action after generating plan?')
     }
     environment {
-        VAULT_ADDR = credentials('vaultUrl')
-        VAULT_TOKEN = credentials('vaultCred')
-        //AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
-        //AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+        VAULT_ADDR = credentials('vaultUrl') // Ensure 'vaultUrl' is configured as a 'Secret Text' credential in Jenkins
+        VAULT_TOKEN = credentials('vaultCred') // Ensure 'vaultCred' is also configured as a 'Secret Text' credential
+        // AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
+        // AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
     }
 
     agent {
@@ -83,7 +83,7 @@ pipeline {
             }
             steps {
                 script {
-                    def planFile = params.ACTION == 'APPLY' ? 'terraform/tfplan.txt' : 'terraform/tfplan-destroy.txt'
+                    def planFile = params.ACTION == 'APPLY' ? 'dynamic-tf/tfplan.txt' : 'dynamic-tf/tfplan-destroy.txt'
                     def plan = readFile planFile
                     input message: "Do you want to ${params.ACTION.toLowerCase()} the resources?",
                           parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
