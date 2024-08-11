@@ -53,6 +53,8 @@ pipeline {
               withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultUrl: 'env.vaultUrl'], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[vaultKey: 'VAULT_ADDR'], [vaultKey: 'VAULT_TOKEN']]]]) {
                 script {
                     dir("dynamic-tf") {
+                        sh ' export VAULT_ADDR="${VAULT_ADDR}"'
+                        sh ' export VAULT_TOKEN="${VAULT_TOKEN}"'
                         sh 'terraform init'
                         sh 'terraform plan -out=tfplan'
                         sh 'terraform show -no-color tfplan > tfplan.txt'
@@ -70,6 +72,8 @@ pipeline {
               withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultUrl: 'env.vaultUrl'], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[vaultKey: 'VAULT_ADDR'], [vaultKey: 'VAULT_TOKEN']]]]) {
                 script {
                     dir("dynamic-tf") {
+                        sh ' export VAULT_ADDR="${VAULT_ADDR}"'
+                        sh ' export VAULT_TOKEN="${VAULT_TOKEN}"'                        
                         sh 'terraform init'
                         sh 'terraform plan -destroy -out=tfplan-destroy'
                         sh 'terraform show -no-color tfplan-destroy > tfplan-destroy.txt'
@@ -103,6 +107,8 @@ pipeline {
               withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultUrl: 'env.vaultUrl'], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[vaultKey: 'VAULT_ADDR'], [vaultKey: 'VAULT_TOKEN']]]]) {
                 script {
                     dir("dynamic-tf") {
+                        sh ' export VAULT_ADDR="${VAULT_ADDR}"'
+                        sh ' export VAULT_TOKEN="${VAULT_TOKEN}"'                        
                         sh 'terraform apply -input=false tfplan'
                     }
                 }
@@ -118,6 +124,8 @@ pipeline {
               withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultUrl: 'env.vaultUrl'], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[vaultKey: 'VAULT_ADDR'], [vaultKey: 'VAULT_TOKEN']]]]) {
                 script {
                     dir("dynamic-tf") {
+                        sh ' export VAULT_ADDR="${VAULT_ADDR}"'
+                        sh ' export VAULT_TOKEN="${VAULT_TOKEN}"'                        
                         sh 'terraform apply -destroy -input=false tfplan-destroy'
                     }
                 }
