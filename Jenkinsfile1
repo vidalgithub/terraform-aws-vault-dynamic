@@ -74,7 +74,7 @@ pipeline {
                     steps {
                         script {
                             withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
-                                    echo "Destroying ${infra.name} in ${infra.dir}"
+                                    echo "Destroying INFRA in ${env.RESOURCE_DIR}/${dir}"
                                     sh 'terraform version'
                                     sh 'helm version'
                                     sh 'vault version'
