@@ -4,10 +4,10 @@ pipeline {
         booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run the selected action after generating plan?')
     }
     environment {
-        VAULT_ADDR = credentials('vaultUrl') // Ensure 'vaultUrl' is configured as a 'Secret Text' credential in Jenkins
-        VAULT_TOKEN = credentials('vaultCred') // Ensure 'vaultCred' is also configured as a 'Secret Text' credential
-        // AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
-        // AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+        VAULT_ADDR = credentials('vaultUrl')
+        VAULT_TOKEN = credentials('vaultCred')
+        //AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
+        //AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
     }
 
     agent {
@@ -50,6 +50,7 @@ pipeline {
                 expression { return params.ACTION == 'APPLY' }
             }
             steps {
+              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultUrl: 'env.vaultUrl'], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[vaultKey: 'VAULT_ADDR'], [vaultKey: 'VAULT_TOKEN']]]]) {
                 script {
                     dir("dynamic-tf") {
                         sh 'terraform init'
@@ -57,6 +58,7 @@ pipeline {
                         sh 'terraform show -no-color tfplan > tfplan.txt'
                     }
                 }
+              }
             }
         }
 
@@ -65,6 +67,7 @@ pipeline {
                 expression { return params.ACTION == 'DESTROY' }
             }
             steps {
+              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultUrl: 'env.vaultUrl'], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[vaultKey: 'VAULT_ADDR'], [vaultKey: 'VAULT_TOKEN']]]]) {
                 script {
                     dir("dynamic-tf") {
                         sh 'terraform init'
@@ -72,6 +75,7 @@ pipeline {
                         sh 'terraform show -no-color tfplan-destroy > tfplan-destroy.txt'
                     }
                 }
+              }
             }
         }
 
@@ -83,7 +87,7 @@ pipeline {
             }
             steps {
                 script {
-                    def planFile = params.ACTION == 'APPLY' ? 'dynamic-tf/tfplan.txt' : 'dynamic-tf/tfplan-destroy.txt'
+                    def planFile = params.ACTION == 'APPLY' ? 'terraform/tfplan.txt' : 'terraform/tfplan-destroy.txt'
                     def plan = readFile planFile
                     input message: "Do you want to ${params.ACTION.toLowerCase()} the resources?",
                           parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
@@ -96,11 +100,13 @@ pipeline {
                 expression { return params.ACTION == 'APPLY' }
             }
             steps {
+              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultUrl: 'env.vaultUrl'], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[vaultKey: 'VAULT_ADDR'], [vaultKey: 'VAULT_TOKEN']]]]) {
                 script {
                     dir("dynamic-tf") {
                         sh 'terraform apply -input=false tfplan'
                     }
                 }
+              }
             }
         }
 
@@ -109,11 +115,13 @@ pipeline {
                 expression { return params.ACTION == 'DESTROY' }
             }
             steps {
+              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultUrl: 'env.vaultUrl'], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[vaultKey: 'VAULT_ADDR'], [vaultKey: 'VAULT_TOKEN']]]]) {
                 script {
                     dir("dynamic-tf") {
                         sh 'terraform apply -destroy -input=false tfplan-destroy'
                     }
                 }
+              }
             }
         }
     }
