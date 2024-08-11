@@ -43,17 +43,17 @@ pipeline {
                 expression { return params.ACTION == 'APPLY' }
             }
             steps {
-              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
-                script {
-                    dir("dynamic-tf") {
-                        sh ' export VAULT_ADDR="${VAULT_ADDR}"'
-                        sh ' export VAULT_TOKEN="${VAULT_TOKEN}"'
-                        sh 'terraform init'
-                        sh 'terraform plan -out=tfplan'
-                        sh 'terraform show -no-color tfplan > tfplan.txt'
+                withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
+                    script {
+                        dir("dynamic-tf") {
+                            sh 'export VAULT_ADDR="${VAULT_ADDR}"'
+                            sh 'export VAULT_TOKEN="${VAULT_TOKEN}"'
+                            sh 'terraform init'
+                            sh 'terraform plan -out=tfplan'
+                            sh 'terraform show -no-color tfplan > tfplan.txt'
+                        }
                     }
                 }
-              }
             }
         }
 
@@ -62,17 +62,17 @@ pipeline {
                 expression { return params.ACTION == 'DESTROY' }
             }
             steps {
-              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
-                script {
-                    dir("dynamic-tf") {
-                        sh ' export VAULT_ADDR="${VAULT_ADDR}"'
-                        sh ' export VAULT_TOKEN="${VAULT_TOKEN}"'                        
-                        sh 'terraform init'
-                        sh 'terraform plan -destroy -out=tfplan-destroy'
-                        sh 'terraform show -no-color tfplan-destroy > tfplan-destroy.txt'
+                withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
+                    script {
+                        dir("dynamic-tf") {
+                            sh 'export VAULT_ADDR="${VAULT_ADDR}"'
+                            sh 'export VAULT_TOKEN="${VAULT_TOKEN}"'                        
+                            sh 'terraform init'
+                            sh 'terraform plan -destroy -out=tfplan-destroy'
+                            sh 'terraform show -no-color tfplan-destroy > tfplan-destroy.txt'
+                        }
                     }
                 }
-              }
             }
         }
 
@@ -84,7 +84,7 @@ pipeline {
             }
             steps {
                 script {
-                    def planFile = params.ACTION == 'APPLY' ? 'terraform/tfplan.txt' : 'terraform/tfplan-destroy.txt'
+                    def planFile = params.ACTION == 'APPLY' ? 'dynamic-tf/tfplan.txt' : 'dynamic-tf/tfplan-destroy.txt'
                     def plan = readFile planFile
                     input message: "Do you want to ${params.ACTION.toLowerCase()} the resources?",
                           parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
@@ -97,15 +97,15 @@ pipeline {
                 expression { return params.ACTION == 'APPLY' }
             }
             steps {
-              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
-                script {
-                    dir("dynamic-tf") {
-                        sh ' export VAULT_ADDR="${VAULT_ADDR}"'
-                        sh ' export VAULT_TOKEN="${VAULT_TOKEN}"'                        
-                        sh 'terraform apply -input=false tfplan'
+                withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
+                    script {
+                        dir("dynamic-tf") {
+                            sh 'export VAULT_ADDR="${VAULT_ADDR}"'
+                            sh 'export VAULT_TOKEN="${VAULT_TOKEN}"'                        
+                            sh 'terraform apply -input=false tfplan'
+                        }
                     }
                 }
-              }
             }
         }
 
@@ -114,15 +114,15 @@ pipeline {
                 expression { return params.ACTION == 'DESTROY' }
             }
             steps {
-              withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
-                script {
-                    dir("dynamic-tf") {
-                        sh ' export VAULT_ADDR="${VAULT_ADDR}"'
-                        sh ' export VAULT_TOKEN="${VAULT_TOKEN}"'                        
-                        sh 'terraform apply -destroy -input=false tfplan-destroy'
+                withVault(configuration: [disableChildPoliciesOverride: false, timeout: 60, vaultCredentialId: 'vaultCred', vaultUrl: env.vaultUrl], vaultSecrets: [[path: 'mycreds/vault-server1/vault-creds', secretValues: [[envVar: 'VAULT_ADDR', vaultKey: 'VAULT_ADDR'], [envVar: 'VAULT_TOKEN', vaultKey: 'VAULT_TOKEN']]]]) {
+                    script {
+                        dir("dynamic-tf") {
+                            sh 'export VAULT_ADDR="${VAULT_ADDR}"'
+                            sh 'export VAULT_TOKEN="${VAULT_TOKEN}"'                        
+                            sh 'terraform apply -destroy -input=false tfplan-destroy'
+                        }
                     }
                 }
-              }
             }
         }
     }
