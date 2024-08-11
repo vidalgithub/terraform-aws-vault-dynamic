@@ -81,6 +81,7 @@ pipeline {
                                     dir("${env.RESOURCE_DIR}/${dir}") {
                                         sh "pwd"
                                         sh "ls -la"
+                                        sh "terraform state list"
                                         destroyInfrastructure()
                                     }
                             }
