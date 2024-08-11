@@ -35,6 +35,7 @@ pipeline {
             steps {
                 script {
                     // Clone the repository manually with a single branch option
+                    sh 'rm -rf terraform-aws-vault-dynamic || true'
                     sh 'git clone --branch main https://github.com/vidalgithub/terraform-aws-vault-dynamic.git ${dir}'
                 }
             }
